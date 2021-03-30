@@ -9,3 +9,4 @@ already done:
 	rm<filename> - removes file.
 	pwd — Print working directory.
 	rmdir<path> - removes directory.
+also added processing of $(...)
