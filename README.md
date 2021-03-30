@@ -1,5 +1,5 @@
 # simplified shell
-It' simplified implementation of bash
+It's simplified implementation of bash
 already done:
 	ls<path> — List directory contents. If path is not stated it will be ".".
 	echo — Prints text to the terminal window.
