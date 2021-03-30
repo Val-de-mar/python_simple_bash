@@ -10,3 +10,4 @@ already done:
 	pwd — Print working directory.
 	rmdir<path> - removes directory.
 also added processing of $(...)
+to exit use ^C
