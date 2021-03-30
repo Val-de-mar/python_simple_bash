@@ -1,4 +1,4 @@
-# python_progect_spring
+# simplified shell
 It' simplified implementation of bash
 already done:
 	ls<path> — List directory contents. If path is not stated it will be ".".
