@@ -263,53 +263,7 @@ class Terminal:
     def pwd(self):
         self.out_stream.write(self.cur_dir_name)
 
-    def execute(self, command: str):
-        command_place = re.search(r"\$\(.*\)", command)
-        while command_place != None:
-            subterm = Terminal(FictiveStream(), FictiveStream())
-            subcommand_str = command_place.group()
-            subcommand_str = subcommand_str[2:-1]
-            subterm.execute(subcommand_str)
-            result = subterm.out_stream.toString()
-            result = '"' + result + '"'
-            segment = command_place.span()
-            command_new = command[:segment[0]]
-            command_new += result
-            command_new += command[segment[1]:]
-            command = command_new
-            command_place = re.search(r'\$\(.*\)', command)
 
-        command = self.parse1(command)
-        if command[0] == []:
-            self.out_stream.write("\r")
-        elif command[0][0] == "cd":
-            command[0].pop(0)
-            self.chdir(command[0])
-        elif command[0][0] == "ls":
-            command[0].pop(0)
-            self.listdir(command[0])
-        elif command[0][0] == "cp":
-            command[0].pop(0)
-            self.copy(command[0])
-        elif command[0][0] == "mv":
-            command[0].pop(0)
-            self.move(command[0])
-        elif command[0][0] == "echo":
-            command[0].pop(0)
-            self.echo(command[0])
-        elif command[0][0] == "rm":
-            command[0].pop(0)
-            self.remove_file(command[0])
-        elif command[0][0] == "mkdir":
-            command[0].pop(0)
-            self.mkdir(command[0])
-        elif command[0][0] == "rmdir":
-            command[0].pop(0)
-            self.rmdir(command[0])
-        elif command[0][0] == "pwd":
-            self.pwd()
-        else:
-            self.err_stream.write("what?!?!?!?!?")
 
     def run(self, command: list, in_stream):
         if command == []:
@@ -573,24 +527,6 @@ class Terminal:
         except SyntaxError:
             sys.stderr.write("invalid syntax")
 
-    def parse1(self, input_command):
-        com_non_parsed = input_command.split("|")
-        c_size = len(com_non_parsed)
-        commands = list()
-        for subcom in range(c_size):
-            string_swaping = com_non_parsed[subcom].split('"')
-            if len(string_swaping) % 2 == 0:
-                raise InvalidSyntax
-            string_swaping = list(filter(lambda x: x != '', string_swaping))
-            commands.append([])
-            for i in range(0, len(string_swaping)):
-                if i % 2 == 0:
-                    c_filter = filter(lambda x: x != '', string_swaping[i].split(r" "))
-                    commands[subcom] += list(c_filter)
-                else:
-                    commands[subcom] += [string_swaping[i]]
-
-        return commands
 
 
 a = Terminal()
