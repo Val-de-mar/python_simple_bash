@@ -108,7 +108,7 @@ class FictiveStream:
     def clear(self):
         self.list_str = []
 
-    def toString(self, joint="\n"):
+    def read(self, joint="\n"):
         return joint.join(self.list_str)
 
 
@@ -279,7 +279,7 @@ class Terminal:
             command = command_new
             command_place = re.search(r'\$\(.*\)', command)
 
-        command = self.parse(command)
+        command = self.parse1(command)
         if command[0] == []:
             self.out_stream.write("\r")
         elif command[0][0] == "cd":
@@ -311,7 +311,269 @@ class Terminal:
         else:
             self.err_stream.write("what?!?!?!?!?")
 
-    def parse(self, input_command):
+    def run(self, command: list, in_stream):
+        if command == []:
+            self.out_stream.write("\r")
+        elif command[0] == "cd":
+            command.pop(0)
+            self.chdir(command)
+        elif command[0] == "ls":
+            command.pop(0)
+            self.listdir(command)
+        elif command[0] == "cp":
+            command.pop(0)
+            self.copy(command)
+        elif command[0] == "mv":
+            command.pop(0)
+            self.move(command)
+        elif command[0] == "echo":
+            command.pop(0)
+            self.echo(command)
+        elif command[0] == "rm":
+            command.pop(0)
+            self.remove_file(command)
+        elif command[0] == "mkdir":
+            command.pop(0)
+            self.mkdir(command)
+        elif command[0] == "rmdir":
+            command.pop(0)
+            self.rmdir(command)
+        elif command[0] == "pwd":
+            self.pwd()
+        else:
+            for i in command:
+                self.out_stream.write(i)
+
+    def parseClear(self, command: list, begin: int, in_stream):
+        ans = []
+        ans.append("")
+        end = begin
+        i = 0
+        escape_char = False
+        dollar_is_prev = False
+        size = len(command)
+        while end < size:
+            char = command[end]
+            if dollar_is_prev:
+                if char == '(':
+                    end += 1
+                    inter_stream = FictiveStream()
+                    empty_stream = FictiveStream()
+                    inter = Terminal(inter_stream, self.err_stream)
+                    contin = inter.parseBrackets(command, end, empty_stream)
+                    if ans[i] != "":
+                        i += 1
+                    else:
+                        ans.append("")
+                    ans[i] = inter_stream.read()
+                    i += 1
+                    ans.append("")
+                    end = contin - 1
+                else:
+                    ans[i] += '$'
+                    end -= 1
+                dollar_is_prev = False
+            elif escape_char:
+                ans[i] += char
+                escape_char = False
+            else:
+                if char == '\\':
+                    escape_char = True
+                elif char == '$':
+                    dollar_is_prev = True
+                elif char == " ":
+                    i += 1
+                    ans.append("")
+                elif char == '"':
+                    end += 1
+                    inter_stream = FictiveStream()
+                    empty_stream = FictiveStream()
+                    inter = Terminal(inter_stream, self.err_stream)
+                    contin = inter.parseDoubleQuotes(command, end, empty_stream)
+                    if ans[i] != "":
+                        i += 1
+                    else:
+                        ans.append("")
+                    ans[i] = inter_stream.read()
+                    i += 1
+                    ans.append("")
+                    end = contin - 1
+                elif char == "'":
+                    end += 1
+                    inter_stream = FictiveStream()
+                    inter = Terminal(inter_stream, self.err_stream)
+                    contin = inter.parseQuotes(command, end)
+                    if ans[i] != "":
+                        i += 1
+                    ans[i] = inter_stream.read()
+                    i += 1
+                    end = contin - 1
+                elif char == "|":
+                    end += 1
+                    inter_stream = FictiveStream()
+                    inter = Terminal(inter_stream, self.err_stream)
+                    ans = list(filter(lambda x: x != '', ans))
+                    inter.run(ans, in_stream)
+                    in_stream = inter.out_stream
+                    ans = []
+                    i = 0
+                elif char == ")":
+                    raise SyntaxError
+                else:
+                    ans[i] += char
+
+            end += 1
+        ans = list(filter(lambda x: x != '', ans))
+        self.run(ans, in_stream)
+        return end
+
+    def parseDoubleQuotes(self, command: list, begin: int, in_stream) -> int:
+        ans = ""
+        end = begin
+        escape_char = False
+        dollar_is_prev = False
+        size = len(command)
+        while end < size:
+            char = command[end]
+            if dollar_is_prev:
+                if char == '(':
+                    end += 1
+                    inter_stream = FictiveStream()
+                    empty_stream = FictiveStream()
+                    inter = Terminal(inter_stream, self.err_stream)
+                    contin = inter.parseBrackets(command, end, empty_stream)
+                    ans += inter_stream.read()
+
+                    end = contin - 1
+                else:
+                    ans += '$'
+                    end -= 1
+                dollar_is_prev = False
+            elif escape_char:
+                ans += char
+                escape_char = False
+            else:
+                if char == '\\':
+                    escape_char = True
+                elif char == '$':
+                    dollar_is_prev = True
+                elif char == '"':
+                    end += 1
+                    self.out_stream.write(ans)
+                    return end
+                else:
+                    ans += char
+
+            end += 1
+        raise SyntaxError
+
+    def parseQuotes(self, command: list, begin: int) -> int:
+        begin += 1
+        ans = ""
+        end = begin
+        for char in command[begin:]:
+            if char == "'":
+                end += 1
+                self.out_stream.write(ans)
+                return end
+            else:
+                ans += char
+            end += 1
+        raise SyntaxError
+
+    def parseBrackets(self, command: list, begin: int, in_stream) -> int:
+        ans = [""]
+
+        end = begin
+        i = 0
+        escape_char = False
+        dollar_is_prev = False
+        size = len(command)
+        while end < size:
+            char = command[end]
+            if dollar_is_prev:
+                if char == '(':
+                    end += 1
+                    inter_stream = FictiveStream()
+                    empty_stream = FictiveStream()
+                    inter = Terminal(inter_stream, self.err_stream)
+                    contin = inter.parseBrackets(command, end, empty_stream)
+                    if ans[i] != "":
+                        i += 1
+                    else:
+                        ans.append("")
+                    ans[i] = inter_stream.read()
+                    i += 1
+                    ans.append("")
+                    end = contin - 1
+                else:
+                    ans[i] += '$'
+                    end -= 1
+                dollar_is_prev = False
+            elif escape_char:
+                ans[i] += char
+                escape_char = False
+            else:
+                if char == '\\':
+                    escape_char = True
+                elif char == '$':
+                    dollar_is_prev = True
+                elif char == " ":
+                    i += 1
+                    ans.append("")
+                elif char == '"':
+                    end += 1
+                    inter_stream = FictiveStream()
+                    empty_stream = FictiveStream()
+                    inter = Terminal(inter_stream, self.err_stream)
+                    contin = inter.parseDoubleQuotes(command, end, empty_stream)
+                    if ans[i] != "":
+                        i += 1
+                    else:
+                        ans.append("")
+                    ans[i] = inter_stream.read()
+                    i += 1
+                    ans.append("")
+                    end = contin - 1
+                elif char == "'":
+                    end += 1
+                    inter_stream = FictiveStream()
+                    inter = Terminal(inter_stream, self.err_stream)
+                    contin = inter.parseQuotes(command, end)
+                    if ans[i] != "":
+                        i += 1
+                    ans[i] = inter_stream.read()
+                    i += 1
+                    end = contin - 1
+                elif char == "|":
+                    end += 1
+                    inter_stream = FictiveStream()
+                    inter = Terminal(inter_stream, self.err_stream)
+                    ans = list(filter(lambda x: x != '', ans))
+                    inter.run(ans, in_stream)
+                    in_stream = inter.out_stream
+                    ans = []
+                    i = 0
+                elif char == ")":
+                    end += 1
+                    ans = list(filter(lambda x: x != '', ans))
+                    self.run(ans, in_stream)
+                    return end
+                else:
+                    ans[i] += char
+
+            end += 1
+        raise SyntaxError
+
+    def parse(self, command: str):
+        pre_parsing = list(command)
+        empty_stream = FictiveStream
+        try:
+            self.parseClear(pre_parsing, 0, empty_stream)
+        except SyntaxError:
+            sys.stderr.write("invalid syntax")
+
+    def parse1(self, input_command):
         com_non_parsed = input_command.split("|")
         c_size = len(com_non_parsed)
         commands = list()
@@ -338,7 +600,7 @@ while True:
         print()
         print(a.position(), end="")
         command = input()
-        a.execute(command)
+        a.parse(command)
 
     except KeyboardInterrupt:
         print("\nI remember what you did to me")
