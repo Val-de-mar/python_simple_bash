@@ -20,6 +20,8 @@ class InvalidArgument(Exception):
 class NonFileName(Exception):
     pass
 
+class InvalidDir(Exception):
+    pass
 
 class CurrentDirDeleting(Exception):
     pass
@@ -90,12 +92,27 @@ class Executer:
             raise InvalidArgument
         os.removedirs(directory_name)
 
-    def make_directory(self, filename):
-        if not path.isdir(path.dirname(filename)):
-            if path.dirname(filename) != "":
-                raise NonDirName
+    def make_directory(self, dirname):
+        if not path.isdir(path.dirname(dirname)):
+            raise NonDirName
 
-        os.makedirs(filename)
+        os.makedirs(dirname)
+
+    def cat(self, filename):
+        if not path.isfile(filename):
+            raise NonFileName
+        file = open(filename, 'r')
+        ans = file.read()
+        file.close()
+        return ans
+
+    def touch(self, filename):
+        if not path.isdir(path.dirname(filename)):
+            raise NonDirName
+        if path.exists(filename):
+            raise InvalidArgument
+        file = open(filename, 'w')
+        file.close()
 
 
 class FictiveStream:
@@ -200,7 +217,7 @@ class Terminal:
         except InvalidSyntax:
             self.err_stream.write("incorrect syntax")
 
-    def remove_file(self, subcommand):
+    def remove_file(self, subcommand: list):
         if len(subcommand) != 1:
             self.err_stream.write("invalid num of arguments")
             return
@@ -263,7 +280,29 @@ class Terminal:
     def pwd(self):
         self.out_stream.write(self.cur_dir_name)
 
+    def xargs(self, subcommand: list, instream):
+        empty_stream = FictiveStream()
+        self.run(subcommand + [instream.read()], empty_stream)
 
+    def cat(self, subcommand: list):
+        if len(subcommand) != 1:
+            self.err_stream.write("incorrect number of arguments")
+        filename = self.deprivat(subcommand[0])
+        try:
+            self.out_stream.write(demiurge.cat(filename))
+        except NonFileName:
+            self.err_stream.write("not file name")
+
+    def touch(self, subcommand: list):
+        if len(subcommand) != 1:
+            self.err_stream.write("incorrect number of arguments")
+        filename = self.deprivat(subcommand[0])
+        try:
+            demiurge.touch(filename)
+        except InvalidArgument:
+            self.err_stream.write("file already exist")
+        except InvalidDir:
+            self.err_stream.write("directory doesn't exist")
 
     def run(self, command: list, in_stream):
         if command == []:
@@ -294,6 +333,15 @@ class Terminal:
             self.rmdir(command)
         elif command[0] == "pwd":
             self.pwd()
+        elif command[0] == "xargs":
+            command.pop(0)
+            self.xargs(command, in_stream)
+        elif command[0] == "cat":
+            command.pop(0)
+            self.cat(command)
+        elif command[0] == "touch":
+            command.pop(0)
+            self.touch(command)
         else:
             for i in command:
                 self.out_stream.write(i)
@@ -369,7 +417,7 @@ class Terminal:
                     ans = list(filter(lambda x: x != '', ans))
                     inter.run(ans, in_stream)
                     in_stream = inter.out_stream
-                    ans = []
+                    ans = [""]
                     i = 0
                 elif char == ")":
                     raise SyntaxError
@@ -526,7 +574,6 @@ class Terminal:
             self.parseClear(pre_parsing, 0, empty_stream)
         except SyntaxError:
             sys.stderr.write("invalid syntax")
-
 
 
 a = Terminal()
