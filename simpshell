@@ -1,24 +1,26 @@
+#!/bin/python3
 import os
 import sys
+sys.path.insert(1, "executer_dir")
 from executer import Executer
 import executer
 from time import sleep
 import re
 from os import path
+import io
 
-
-class FictiveStream:
-    def __init__(self):
-        self.list_str = []
-
-    def write(self, *args):
-        self.list_str += [' '.join(args)]
-
-    def clear(self):
-        self.list_str = []
-
-    def read(self, joint="\n"):
-        return joint.join(self.list_str)
+# class FictiveStream:
+#     def __init__(self):
+#         self.list_str = []
+#
+#     def write(self, *args):
+#         self.list_str += [' '.join(args)]
+#
+#     def clear(self):
+#         self.list_str = []
+#
+#     def read(self, joint="\n"):
+#         return joint.join(self.list_str)
 
 
 demiurge = executer.Executer()
@@ -204,7 +206,7 @@ class Terminal:
         self.out_stream.write(self.cur_dir_name)
 
     def xargs(self, subcommand: list, instream):
-        empty_stream = FictiveStream()
+        empty_stream = io.StringIO()
         self.run(subcommand + [instream.read()], empty_stream)
 
     def cat(self, subcommand: list):
@@ -226,6 +228,15 @@ class Terminal:
             self.err_stream.write("file already exist")
         except InvalidDir:
             self.err_stream.write("directory doesn't exist")
+
+    def subprocess(self, subcommand, instream):
+        in_stream = io.StringIO(instream.read())
+        try:
+            demiurge.subprocess(self.cur_dir_name, subcommand, in_stream, self.out_stream, self.err_stream)
+        except Exception as ex:
+            print(ex)
+            self.err_stream.write("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+        pass
 
     def run(self, command: list, in_stream):
         if command == []:
@@ -266,8 +277,7 @@ class Terminal:
             command.pop(0)
             self.touch(command)
         else:
-            for i in command:
-                self.out_stream.write(i)
+            self.subprocess(command, in_stream)
 
     def parseClear(self, command: list, begin: int, in_stream):
         ans = []
@@ -282,15 +292,19 @@ class Terminal:
             if dollar_is_prev:
                 if char == '(':
                     end += 1
-                    inter_stream = FictiveStream()
-                    empty_stream = FictiveStream()
+                    inter_stream = io.StringIO()
                     inter = Terminal(inter_stream, self.err_stream)
-                    contin = inter.parseBrackets(command, end, empty_stream)
+                    contin = ""
+                    if len(ans) > 1:
+                        empty_stream = io.StringIO()
+                        contin = inter.parseBrackets(command, end, empty_stream)
+                    else:
+                        contin = inter.parseBrackets(command, end, in_stream)
                     if ans[i] != "":
                         i += 1
                     else:
                         ans.append("")
-                    ans[i] = inter_stream.read()
+                    ans[i] = inter.out_stream.getvalue()
                     i += 1
                     ans.append("")
                     end = contin - 1
@@ -311,8 +325,8 @@ class Terminal:
                     ans.append("")
                 elif char == '"':
                     end += 1
-                    inter_stream = FictiveStream()
-                    empty_stream = FictiveStream()
+                    inter_stream = io.StringIO()
+                    empty_stream = io.StringIO()
                     inter = Terminal(inter_stream, self.err_stream)
                     contin = inter.parseDoubleQuotes(command, end, empty_stream)
                     if ans[i] != "":
@@ -325,7 +339,7 @@ class Terminal:
                     end = contin - 1
                 elif char == "'":
                     end += 1
-                    inter_stream = FictiveStream()
+                    inter_stream = io.StringIO()
                     inter = Terminal(inter_stream, self.err_stream)
                     contin = inter.parseQuotes(command, end)
                     if ans[i] != "":
@@ -335,7 +349,7 @@ class Terminal:
                     end = contin - 1
                 elif char == "|":
                     end += 1
-                    inter_stream = FictiveStream()
+                    inter_stream = io.StringIO()
                     inter = Terminal(inter_stream, self.err_stream)
                     ans = list(filter(lambda x: x != '', ans))
                     inter.run(ans, in_stream)
@@ -346,7 +360,12 @@ class Terminal:
                     raise SyntaxError
                 else:
                     ans[i] += char
-
+            pot = list(filter(lambda x: x != '', ans))
+            if ans[-1] == "":
+                ans = pot + [""]
+            else:
+                ans = pot
+            i = len(ans) - 1
             end += 1
         ans = list(filter(lambda x: x != '', ans))
         self.run(ans, in_stream)
@@ -363,8 +382,8 @@ class Terminal:
             if dollar_is_prev:
                 if char == '(':
                     end += 1
-                    inter_stream = FictiveStream()
-                    empty_stream = FictiveStream()
+                    inter_stream = io.StringIO()
+                    empty_stream = io.StringIO()
                     inter = Terminal(inter_stream, self.err_stream)
                     contin = inter.parseBrackets(command, end, empty_stream)
                     ans += inter_stream.read()
@@ -419,8 +438,8 @@ class Terminal:
             if dollar_is_prev:
                 if char == '(':
                     end += 1
-                    inter_stream = FictiveStream()
-                    empty_stream = FictiveStream()
+                    inter_stream = io.StringIO()
+                    empty_stream = io.StringIO()
                     inter = Terminal(inter_stream, self.err_stream)
                     contin = inter.parseBrackets(command, end, empty_stream)
                     if ans[i] != "":
@@ -448,8 +467,8 @@ class Terminal:
                     ans.append("")
                 elif char == '"':
                     end += 1
-                    inter_stream = FictiveStream()
-                    empty_stream = FictiveStream()
+                    inter_stream = io.StringIO()
+                    empty_stream = io.StringIO()
                     inter = Terminal(inter_stream, self.err_stream)
                     contin = inter.parseDoubleQuotes(command, end, empty_stream)
                     if ans[i] != "":
@@ -462,7 +481,7 @@ class Terminal:
                     end = contin - 1
                 elif char == "'":
                     end += 1
-                    inter_stream = FictiveStream()
+                    inter_stream = io.StringIO()
                     inter = Terminal(inter_stream, self.err_stream)
                     contin = inter.parseQuotes(command, end)
                     if ans[i] != "":
@@ -472,7 +491,7 @@ class Terminal:
                     end = contin - 1
                 elif char == "|":
                     end += 1
-                    inter_stream = FictiveStream()
+                    inter_stream = io.StringIO()
                     inter = Terminal(inter_stream, self.err_stream)
                     ans = list(filter(lambda x: x != '', ans))
                     inter.run(ans, in_stream)
@@ -492,7 +511,7 @@ class Terminal:
 
     def parse(self, command: str):
         pre_parsing = list(command)
-        empty_stream = FictiveStream
+        empty_stream = io.StringIO()
         try:
             self.parseClear(pre_parsing, 0, empty_stream)
         except SyntaxError:
@@ -510,6 +529,5 @@ while True:
 
     except KeyboardInterrupt:
         print("\nI remember what you did to me\033[0m")
-        
-        exit()
 
+        exit()
