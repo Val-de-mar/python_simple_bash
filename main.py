@@ -509,5 +509,7 @@ while True:
         a.parse(command)
 
     except KeyboardInterrupt:
-        print("\nI remember what you did to me")
+        print("\nI remember what you did to me\033[0m")
+        
         exit()
+
