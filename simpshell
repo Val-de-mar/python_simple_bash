@@ -167,7 +167,7 @@ class Terminal:
             self.err_stream.write("incorrect syntax\n")
 
     def pwd(self):
-        self.out_stream.write(self.cur_dir_name)
+        self.out_stream.write(self.cur_dir_name + "\n")
 
     def xargs(self, subcommand: list, instream):
         empty_stream = io.StringIO()
