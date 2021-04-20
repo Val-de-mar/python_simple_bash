@@ -9,46 +9,10 @@ import re
 from os import path
 import io
 
-# class FictiveStream:
-#     def __init__(self):
-#         self.list_str = []
-#
-#     def write(self, *args):
-#         self.list_str += [' '.join(args)]
-#
-#     def clear(self):
-#         self.list_str = []
-#
-#     def read(self, joint="\n"):
-#         return joint.join(self.list_str)
-
-
 demiurge = executer.Executer()
 
 
-class NonDirName(Exception):
-    pass
-
-
-class InvalidSyntax(Exception):
-    pass
-
-
-class InvalidArgument(Exception):
-    pass
-
-
-class NonFileName(Exception):
-    pass
-
-
-class InvalidDir(Exception):
-    pass
-
-
-class CurrentDirDeleting(Exception):
-    pass
-
+from executer import NonDirName, InvalidSyntax, InvalidArgument, NonFileName, InvalidDir, CurrentDirDeleting
 
 class Terminal:
     def __init__(self, out_stream=sys.stdout, err_stream=sys.stderr):
@@ -71,10 +35,10 @@ class Terminal:
 
     def chdir(self, subcommand):
         if len(subcommand) != 1 or type(subcommand[0]) is not str:
-            self.err_stream.write("too few arguments")
+            self.err_stream.write("too few arguments\n")
             return
         if len(subcommand) != 1 or type(subcommand[0]) is not str:
-            self.err_stream.write("invalid syntax")
+            self.err_stream.write("invalid syntax\n")
             return
 
         place = os.path.realpath(self.deprivat(subcommand[0]))
@@ -82,7 +46,7 @@ class Terminal:
             self.last_dir = self.cur_dir_name
             self.cur_dir_name = place
         else:
-            self.err_stream.write("this dir doesn't exist")
+            self.err_stream.write("this directory doesn't exist\n")
 
     def cur_dir_name_short(self):
         ans = self.cur_dir_name
@@ -101,20 +65,20 @@ class Terminal:
         if not subcommand:
             subcommand.append(self.cur_dir_name)
         elif len(subcommand) != 1 or type(subcommand[0]) is not str:
-            self.err_stream.write("too few arguments")
+            self.err_stream.write("too few arguments\n")
             return
 
         place = self.deprivat(subcommand[0])
         try:
             self.out_stream.write(demiurge.listdir(place, "".join(flags)))
         except NonDirName:
-            self.err_stream.write("not directory name")
+            self.err_stream.write("not directory name\n")
 
     def copy(self, subcommand):
         if not subcommand:
             subcommand[0] = self.cur_dir_name
         elif len(subcommand) != 2:
-            self.err_stream.write("too few arguments")
+            self.err_stream.write("too few arguments\n")
             return
 
         input = self.deprivat(subcommand[0])
@@ -122,15 +86,15 @@ class Terminal:
         try:
             demiurge.copy(input, output)
         except NonDirName:
-            self.err_stream.write("incorrect input or output path")
+            self.err_stream.write("incorrect input or output path\n")
         except InvalidSyntax:
-            self.err_stream.write("incorrect syntax")
+            self.err_stream.write("incorrect syntax\n")
 
     def move(self, subcommand):
         if not subcommand:
             subcommand[0] = self.cur_dir_name
         elif len(subcommand) != 2:
-            self.err_stream.write("too few arguments")
+            self.err_stream.write("too few arguments\n")
             return
 
         input = self.deprivat(subcommand[0])
@@ -138,13 +102,13 @@ class Terminal:
         try:
             demiurge.move(input, output)
         except NonDirName:
-            self.err_stream.write("incorrect input or output path")
+            self.err_stream.write("incorrect input or output path\n")
         except InvalidSyntax:
-            self.err_stream.write("incorrect syntax")
+            self.err_stream.write("incorrect syntax\n")
 
     def remove_file(self, subcommand: list):
         if len(subcommand) != 1:
-            self.err_stream.write("invalid num of arguments")
+            self.err_stream.write("invalid num of arguments\n")
             return
         elif not subcommand:
             subcommand[0] = self.cur_dir_name
@@ -153,7 +117,7 @@ class Terminal:
         try:
             demiurge.remove_file(filename)
         except NonFileName:
-            self.err_stream.write("not file name")
+            self.err_stream.write("not file name\n")
 
     def echo(self, subcommand: list):
         my_str = " ".join(subcommand)
@@ -165,21 +129,21 @@ class Terminal:
         if not subcommand:
             subcommand.append(self.cur_dir_name)
         elif len(subcommand) != 1 or type(subcommand[0]) is not str:
-            self.err_stream.write("too few arguments")
+            self.err_stream.write("too few arguments\n")
             return
 
         place = self.deprivat(subcommand[0])
         if path.realpath(place) == path.realpath(self.cur_dir_name):
-            self.err_stream.write("you try to delete current directory")
+            self.err_stream.write("you try to delete current directory\n")
             return
         if path.realpath(place) == path.realpath(self.last_dir):
             self.last_dir = self.cur_dir_name
         try:
             demiurge.remove_directory(place)
         except NonDirName:
-            self.err_stream.write("not directory name")
+            self.err_stream.write("not directory name\n")
         except InvalidArgument:
-            self.err_stream.write("directory is not empty")
+            self.err_stream.write("directory is not empty\n")
 
     def position(self):
         user = "\033[32m{0}@{1}".format(os.getlogin(), os.uname().nodename)
@@ -191,16 +155,16 @@ class Terminal:
         if not subcommand:
             subcommand[0] = self.cur_dir_name
         elif len(subcommand) != 1:
-            self.err_stream.write("incorrect number of arguments")
+            self.err_stream.write("incorrect number of arguments\n")
             return
 
         output = self.deprivat(subcommand[0])
         try:
             demiurge.make_directory(output)
         except NonDirName:
-            self.err_stream.write("incorrect output path")
+            self.err_stream.write("incorrect output path\n")
         except InvalidSyntax:
-            self.err_stream.write("incorrect syntax")
+            self.err_stream.write("incorrect syntax\n")
 
     def pwd(self):
         self.out_stream.write(self.cur_dir_name)
@@ -211,31 +175,30 @@ class Terminal:
 
     def cat(self, subcommand: list):
         if len(subcommand) != 1:
-            self.err_stream.write("incorrect number of arguments")
+            self.err_stream.write("incorrect number of arguments\n")
         filename = self.deprivat(subcommand[0])
         try:
             self.out_stream.write(demiurge.cat(filename))
         except NonFileName:
-            self.err_stream.write("not file name")
+            self.err_stream.write("not file name\n")
 
     def touch(self, subcommand: list):
         if len(subcommand) != 1:
-            self.err_stream.write("incorrect number of arguments")
+            self.err_stream.write("incorrect number of arguments\n")
         filename = self.deprivat(subcommand[0])
         try:
             demiurge.touch(filename)
         except InvalidArgument:
-            self.err_stream.write("file already exist")
+            self.err_stream.write("file already exist\n")
         except InvalidDir:
-            self.err_stream.write("directory doesn't exist")
+            self.err_stream.write("directory doesn't exist\n")
 
     def subprocess(self, subcommand, instream):
         in_stream = io.StringIO(instream.read())
         try:
             demiurge.subprocess(self.cur_dir_name, subcommand, in_stream, self.out_stream, self.err_stream)
         except Exception as ex:
-            print(ex)
-            self.err_stream.write("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+            self.err_stream.write(str(ex) + "\n")
         pass
 
     def run(self, command: list, in_stream):
@@ -515,14 +478,13 @@ class Terminal:
         try:
             self.parseClear(pre_parsing, 0, empty_stream)
         except SyntaxError:
-            sys.stderr.write("invalid syntax")
+            sys.stderr.write("invalid syntax\n")
 
 
 a = Terminal()
 print()
 while True:
     try:
-        print()
         print(a.position(), end="")
         command = input()
         a.parse(command)

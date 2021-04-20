@@ -61,7 +61,7 @@ class Executer:
             ans += [preans + element]
 
         result = "\n".join(ans)
-        result += "\033[37m"
+        result += "\n\033[37m"
         return result
 
     def copy(self, input: str, output: str):

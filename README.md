@@ -10,7 +10,11 @@ already done:
 	rm<filename> — removes file.
 	pwd — Print working directory.
 	rmdir<path> — removes directory.
-also added processing of $(...)
+	xargs - takes arguments from input stream and put them as arguments in the end of command
+	cat - prints file content as text
+	touch - creates empty file
+	
+also added processing of $(...), | and execution of executable files 
 to exit use ^C
 "-" - in <path> means previous directory.
 "~" - in <path> means home directory.
