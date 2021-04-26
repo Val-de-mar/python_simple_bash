@@ -1,18 +1,14 @@
 #!/bin/python3
 import os
 import sys
-sys.path.insert(1, "executer_dir")
-from executer import Executer
-import executer
-from time import sleep
-import re
-from os import path
 import io
+from os import path
+import executer
+from executer import NonDirName, InvalidSyntax, InvalidArgument
+from executer import NonFileName, InvalidDir
 
-demiurge = executer.Executer()
+Demiurge = executer.Executer()
 
-
-from executer import NonDirName, InvalidSyntax, InvalidArgument, NonFileName, InvalidDir, CurrentDirDeleting
 
 class Terminal:
     def __init__(self, out_stream=sys.stdout, err_stream=sys.stderr):
@@ -22,7 +18,10 @@ class Terminal:
         self.out_stream = out_stream
         self.err_stream = err_stream
 
-    def deprivat(self, priv_path: str):
+    def __deprivat(self, priv_path: str):
+        """
+        makes path absolute
+        """
         if priv_path[0] == "~":
             place = path.expanduser(priv_path)
         elif priv_path[0] == "/":
@@ -33,15 +32,18 @@ class Terminal:
             place = self.cur_dir_name + "/" + priv_path
         return path.realpath(place)
 
-    def chdir(self, subcommand):
-        if len(subcommand) != 1 or type(subcommand[0]) is not str:
+    def __chdir(self, subcommand_list):
+        """
+        changes directory
+        """
+        if len(subcommand_list) != 1 or not isinstance(subcommand_list[0], str):
             self.err_stream.write("too few arguments\n")
             return
-        if len(subcommand) != 1 or type(subcommand[0]) is not str:
+        if len(subcommand_list) != 1 or not isinstance(subcommand_list[0], str):
             self.err_stream.write("invalid syntax\n")
             return
 
-        place = os.path.realpath(self.deprivat(subcommand[0]))
+        place = os.path.realpath(self.__deprivat(subcommand_list[0]))
         if os.path.isdir(place):
             self.last_dir = self.cur_dir_name
             self.cur_dir_name = place
@@ -49,220 +51,285 @@ class Terminal:
             self.err_stream.write("this directory doesn't exist\n")
 
     def cur_dir_name_short(self):
+        """
+        :return: current directory name
+        """
         ans = self.cur_dir_name
         if ans[0:len(self.home_dir)] == self.home_dir:
             ans = '~' + ans[len(self.home_dir):]
         return ans
 
-    def listdir(self, subcommand: list):
+    def __listdir(self, subcommand_list: list):
+        """
+        prints list of directory
+        """
         flags = []
-        for part in enumerate(subcommand):
+        for part in enumerate(subcommand_list):
             if part[1][0] == "-" and len(part[1]) != 1:
                 flags += list(part[1])
                 flags.remove("-")
-                subcommand.pop(part[0])
+                subcommand_list.pop(part[0])
 
-        if not subcommand:
-            subcommand.append(self.cur_dir_name)
-        elif len(subcommand) != 1 or type(subcommand[0]) is not str:
+        if not subcommand_list:
+            subcommand_list.append(self.cur_dir_name)
+        elif len(subcommand_list) != 1 or not isinstance(subcommand_list[0], str):
             self.err_stream.write("too few arguments\n")
             return
 
-        place = self.deprivat(subcommand[0])
+        place = self.__deprivat(subcommand_list[0])
         try:
-            self.out_stream.write(demiurge.listdir(place, "".join(flags)))
+            self.out_stream.write(Demiurge.listdir(place, "".join(flags)))
         except NonDirName:
             self.err_stream.write("not directory name\n")
 
-    def copy(self, subcommand):
-        if not subcommand:
-            subcommand[0] = self.cur_dir_name
-        elif len(subcommand) != 2:
+    def __copy(self, subcommand_list):
+        """
+        copies file
+        """
+        if not subcommand_list:
+            subcommand_list[0] = self.cur_dir_name
+        elif len(subcommand_list) != 2:
             self.err_stream.write("too few arguments\n")
             return
 
-        input = self.deprivat(subcommand[0])
-        output = self.deprivat(subcommand[1])
+        input_stream = self.__deprivat(subcommand_list[0])
+        output = self.__deprivat(subcommand_list[1])
         try:
-            demiurge.copy(input, output)
+            Demiurge.copy(input_stream, output)
         except NonDirName:
             self.err_stream.write("incorrect input or output path\n")
         except InvalidSyntax:
             self.err_stream.write("incorrect syntax\n")
 
-    def move(self, subcommand):
-        if not subcommand:
-            subcommand[0] = self.cur_dir_name
-        elif len(subcommand) != 2:
+    def move(self, subcommand_list):
+        """
+        moves or renames file
+        """
+        if not subcommand_list:
+            subcommand_list[0] = self.cur_dir_name
+        elif len(subcommand_list) != 2:
             self.err_stream.write("too few arguments\n")
             return
 
-        input = self.deprivat(subcommand[0])
-        output = self.deprivat(subcommand[1])
+        input_stream = self.__deprivat(subcommand_list[0])
+        output = self.__deprivat(subcommand_list[1])
         try:
-            demiurge.move(input, output)
+            Demiurge.move(input_stream, output)
         except NonDirName:
             self.err_stream.write("incorrect input or output path\n")
         except InvalidSyntax:
             self.err_stream.write("incorrect syntax\n")
 
-    def remove_file(self, subcommand: list):
-        if len(subcommand) != 1:
+    def remove_file(self, subcommand_list: list):
+        """
+        removes file
+        """
+        if len(subcommand_list) != 1:
             self.err_stream.write("invalid num of arguments\n")
             return
-        elif not subcommand:
-            subcommand[0] = self.cur_dir_name
+        if not subcommand_list:
+            subcommand_list[0] = self.cur_dir_name
 
-        filename = self.deprivat(subcommand[0])
+        filename = self.__deprivat(subcommand_list[0])
         try:
-            demiurge.remove_file(filename)
+            Demiurge.remove_file(filename)
         except NonFileName:
             self.err_stream.write("not file name\n")
 
-    def echo(self, subcommand: list):
-        my_str = " ".join(subcommand)
+    def echo(self, subcommand_list: list):
+        """
+        prints its argument
+        """
+        my_str = " ".join(subcommand_list)
         if my_str[0] == my_str[-1] == '"':
             my_str = my_str[1:-1]
         self.out_stream.write(my_str)
 
-    def rmdir(self, subcommand: list):
-        if not subcommand:
-            subcommand.append(self.cur_dir_name)
-        elif len(subcommand) != 1 or type(subcommand[0]) is not str:
+    def rmdir(self, subcommand_list: list):
+        """
+        removes empty directory
+        """
+        if not subcommand_list:
+            subcommand_list.append(self.cur_dir_name)
+        elif len(subcommand_list) != 1 or not isinstance(subcommand_list[0], str):
             self.err_stream.write("too few arguments\n")
             return
 
-        place = self.deprivat(subcommand[0])
+        place = self.__deprivat(subcommand_list[0])
         if path.realpath(place) == path.realpath(self.cur_dir_name):
             self.err_stream.write("you try to delete current directory\n")
             return
         if path.realpath(place) == path.realpath(self.last_dir):
             self.last_dir = self.cur_dir_name
         try:
-            demiurge.remove_directory(place)
+            Demiurge.remove_directory(place)
         except NonDirName:
             self.err_stream.write("not directory name\n")
         except InvalidArgument:
             self.err_stream.write("directory is not empty\n")
 
     def position(self):
+        """
+        :return: user info
+        """
         user = "\033[32m{0}@{1}".format(os.getlogin(), os.uname().nodename)
         cwd = "\033[34m" + self.cur_dir_name_short()
-        ans = user + "\033[37m:" + cwd + "\033[37m$"
+        ans = user + "\033[37m:" + cwd + "\033[37m$" + "\033[0m"
         return ans
 
-    def mkdir(self, subcommand):
-        if not subcommand:
-            subcommand[0] = self.cur_dir_name
-        elif len(subcommand) != 1:
+    def mkdir(self, subcommand_list):
+        """
+        creates directory
+        """
+        if not subcommand_list:
+            subcommand_list[0] = self.cur_dir_name
+        elif len(subcommand_list) != 1:
             self.err_stream.write("incorrect number of arguments\n")
             return
 
-        output = self.deprivat(subcommand[0])
+        output = self.__deprivat(subcommand_list[0])
         try:
-            demiurge.make_directory(output)
+            Demiurge.make_directory(output)
         except NonDirName:
             self.err_stream.write("incorrect output path\n")
         except InvalidSyntax:
             self.err_stream.write("incorrect syntax\n")
 
     def pwd(self):
+        """
+        path to current directory
+        """
         self.out_stream.write(self.cur_dir_name + "\n")
 
-    def xargs(self, subcommand: list, instream):
+    def xargs(self, subcommand_list: list, instream):
+        """
+        takes input stream and puts it as argument to the end of next command
+        """
         empty_stream = io.StringIO()
-        self.run(subcommand + [instream.read()], empty_stream)
+        self.run(subcommand_list + [instream.read()], empty_stream)
 
-    def cat(self, subcommand: list):
-        if len(subcommand) != 1:
+    def cat(self, subcommand_list: list):
+        """
+        prints file content
+        """
+        if len(subcommand_list) != 1:
             self.err_stream.write("incorrect number of arguments\n")
-        filename = self.deprivat(subcommand[0])
+        filename = self.__deprivat(subcommand_list[0])
         try:
-            self.out_stream.write(demiurge.cat(filename))
+            self.out_stream.write(Demiurge.cat(filename))
         except NonFileName:
             self.err_stream.write("not file name\n")
 
-    def touch(self, subcommand: list):
-        if len(subcommand) != 1:
+    def touch(self, subcommand_list: list):
+        """
+        creates empty file
+        """
+        if len(subcommand_list) != 1:
             self.err_stream.write("incorrect number of arguments\n")
-        filename = self.deprivat(subcommand[0])
+        filename = self.__deprivat(subcommand_list[0])
         try:
-            demiurge.touch(filename)
+            Demiurge.touch(filename)
         except InvalidArgument:
             self.err_stream.write("file already exist\n")
         except InvalidDir:
             self.err_stream.write("directory doesn't exist\n")
 
-    def subprocess(self, subcommand, instream):
+    def subprocess(self, subcommand_list, instream):
+        """
+        rus subprocess
+        """
         in_stream = io.StringIO(instream.read())
         try:
-            demiurge.subprocess(self.cur_dir_name, subcommand, in_stream, self.out_stream, self.err_stream)
+            Demiurge.subprocess(self.cur_dir_name, subcommand_list, in_stream,
+                                self.out_stream, self.err_stream)
         except Exception as ex:
             self.err_stream.write(str(ex) + "\n")
-        pass
 
-    def run(self, command: list, in_stream):
-        if command == []:
+    def continue_run(self, command_run: list):
+        """
+        helper for run function
+        """
+        ind = True
+        if command_run[0] == "cd":
+            command_run.pop(0)
+            self.__chdir(command_run)
+            ind = False
+        elif command_run[0] == "ls":
+            command_run.pop(0)
+            self.__listdir(command_run)
+            ind = False
+        elif command_run[0] == "cp":
+            command_run.pop(0)
+            self.__copy(command_run)
+            ind = False
+        elif command_run[0] == "mv":
+            command_run.pop(0)
+            self.move(command_run)
+            ind = False
+        elif command_run[0] == "echo":
+            command_run.pop(0)
+            self.echo(command_run)
+            ind = False
+        elif command_run[0] == "rm":
+            command_run.pop(0)
+            self.remove_file(command_run)
+            ind = False
+        elif command_run[0] == "mkdir":
+            command_run.pop(0)
+            self.mkdir(command_run)
+            ind = False
+        elif command_run[0] == "rmdir":
+            command_run.pop(0)
+            self.rmdir(command_run)
+            ind = False
+        return ind
+
+    def run(self, command_run: list, in_stream):
+        """
+        runs command from list
+        """
+        if not command_run:
             self.out_stream.write("\r")
-        elif command[0] == "cd":
-            command.pop(0)
-            self.chdir(command)
-        elif command[0] == "ls":
-            command.pop(0)
-            self.listdir(command)
-        elif command[0] == "cp":
-            command.pop(0)
-            self.copy(command)
-        elif command[0] == "mv":
-            command.pop(0)
-            self.move(command)
-        elif command[0] == "echo":
-            command.pop(0)
-            self.echo(command)
-        elif command[0] == "rm":
-            command.pop(0)
-            self.remove_file(command)
-        elif command[0] == "mkdir":
-            command.pop(0)
-            self.mkdir(command)
-        elif command[0] == "rmdir":
-            command.pop(0)
-            self.rmdir(command)
-        elif command[0] == "pwd":
+        elif command_run[0] == "pwd":
             self.pwd()
-        elif command[0] == "xargs":
-            command.pop(0)
-            self.xargs(command, in_stream)
-        elif command[0] == "cat":
-            command.pop(0)
-            self.cat(command)
-        elif command[0] == "touch":
-            command.pop(0)
-            self.touch(command)
-        else:
-            self.subprocess(command, in_stream)
+        elif command_run[0] == "xargs":
+            command_run.pop(0)
+            self.xargs(command_run, in_stream)
+        elif command_run[0] == "cat":
+            command_run.pop(0)
+            self.cat(command_run)
+        elif command_run[0] == "touch":
+            command_run.pop(0)
+            self.touch(command_run)
+        elif self.continue_run(command_run):
+            self.subprocess(command_run, in_stream)
 
-    def parseClear(self, command: list, begin: int, in_stream):
-        ans = []
+
+    def parse_clear(self, command_list_c: list, begin: int, in_stream):
+        """
+        simple parsing
+        """
+        ans = list()
         ans.append("")
         end = begin
         i = 0
-        escape_char = False
-        dollar_is_prev = False
-        size = len(command)
+        prev_sign = [False, False]
+        size = len(command_list_c)
         while end < size:
-            char = command[end]
-            if dollar_is_prev:
+            char = command_list_c[end]
+            if prev_sign[1]:
                 if char == '(':
                     end += 1
                     inter_stream = io.StringIO()
                     inter = Terminal(inter_stream, self.err_stream)
-                    contin = ""
+                    contin = 1
                     if len(ans) > 1:
                         empty_stream = io.StringIO()
-                        contin = inter.parseBrackets(command, end, empty_stream)
+                        contin = inter.parse_brackets(command_list_c, end,
+                                                      empty_stream)
                     else:
-                        contin = inter.parseBrackets(command, end, in_stream)
+                        contin = inter.parse_brackets(command_list_c, end,
+                                                      in_stream)
                     if ans[i] != "":
                         i += 1
                     else:
@@ -274,15 +341,15 @@ class Terminal:
                 else:
                     ans[i] += '$'
                     end -= 1
-                dollar_is_prev = False
-            elif escape_char:
+                prev_sign[1] = False
+            elif prev_sign[0]:
                 ans[i] += char
-                escape_char = False
+                prev_sign[0] = False
             else:
                 if char == '\\':
-                    escape_char = True
+                    prev_sign[0] = True
                 elif char == '$':
-                    dollar_is_prev = True
+                    prev_sign[1] = True
                 elif char == " ":
                     i += 1
                     ans.append("")
@@ -291,7 +358,8 @@ class Terminal:
                     inter_stream = io.StringIO()
                     empty_stream = io.StringIO()
                     inter = Terminal(inter_stream, self.err_stream)
-                    contin = inter.parseDoubleQuotes(command, end, empty_stream)
+                    contin = inter.parse_double_quotes(command_list_c, end,
+                                                       empty_stream)
                     if ans[i] != "":
                         i += 1
                     else:
@@ -304,7 +372,7 @@ class Terminal:
                     end += 1
                     inter_stream = io.StringIO()
                     inter = Terminal(inter_stream, self.err_stream)
-                    contin = inter.parseQuotes(command, end)
+                    contin = inter.parse_quotes(command_list_c, end)
                     if ans[i] != "":
                         i += 1
                     ans[i] = inter_stream.read()
@@ -334,21 +402,28 @@ class Terminal:
         self.run(ans, in_stream)
         return end
 
-    def parseDoubleQuotes(self, command: list, begin: int, in_stream) -> int:
+    def parse_double_quotes(self, command_list: list, begin: int,
+                            in_stream) -> int:
+        """
+        parses expressions in double quotes
+        """
+        if in_stream == int:
+            raise InvalidArgument
         ans = ""
         end = begin
         escape_char = False
         dollar_is_prev = False
-        size = len(command)
+        size = len(command_list)
         while end < size:
-            char = command[end]
+            char = command_list[end]
             if dollar_is_prev:
                 if char == '(':
                     end += 1
                     inter_stream = io.StringIO()
                     empty_stream = io.StringIO()
                     inter = Terminal(inter_stream, self.err_stream)
-                    contin = inter.parseBrackets(command, end, empty_stream)
+                    contin = inter.parse_brackets(command_list, end,
+                                                  empty_stream)
                     ans += inter_stream.read()
 
                     end = contin - 1
@@ -374,37 +449,43 @@ class Terminal:
             end += 1
         raise SyntaxError
 
-    def parseQuotes(self, command: list, begin: int) -> int:
+    def parse_quotes(self, command_list: list, begin: int) -> int:
+        """
+        parses expressions in quotes
+        """
         begin += 1
         ans = ""
         end = begin
-        for char in command[begin:]:
+        for char in command_list[begin:]:
             if char == "'":
                 end += 1
                 self.out_stream.write(ans)
                 return end
-            else:
-                ans += char
+            ans += char
             end += 1
         raise SyntaxError
 
-    def parseBrackets(self, command: list, begin: int, in_stream) -> int:
+    def parse_brackets(self, command_list: list, begin: int, in_stream) -> int:
+        """
+        parses expressions in brackets
+        """
         ans = [""]
 
         end = begin
         i = 0
         escape_char = False
         dollar_is_prev = False
-        size = len(command)
+        size = len(command_list)
         while end < size:
-            char = command[end]
+            char = command_list[end]
             if dollar_is_prev:
                 if char == '(':
                     end += 1
                     inter_stream = io.StringIO()
                     empty_stream = io.StringIO()
                     inter = Terminal(inter_stream, self.err_stream)
-                    contin = inter.parseBrackets(command, end, empty_stream)
+                    contin = inter.parse_brackets(command_list, end,
+                                                  empty_stream)
                     if ans[i] != "":
                         i += 1
                     else:
@@ -433,7 +514,8 @@ class Terminal:
                     inter_stream = io.StringIO()
                     empty_stream = io.StringIO()
                     inter = Terminal(inter_stream, self.err_stream)
-                    contin = inter.parseDoubleQuotes(command, end, empty_stream)
+                    contin = inter.parse_double_quotes(command_list, end,
+                                                       empty_stream)
                     if ans[i] != "":
                         i += 1
                     else:
@@ -446,7 +528,7 @@ class Terminal:
                     end += 1
                     inter_stream = io.StringIO()
                     inter = Terminal(inter_stream, self.err_stream)
-                    contin = inter.parseQuotes(command, end)
+                    contin = inter.parse_quotes(command_list, end)
                     if ans[i] != "":
                         i += 1
                     ans[i] = inter_stream.read()
@@ -472,24 +554,26 @@ class Terminal:
             end += 1
         raise SyntaxError
 
-    def parse(self, command: str):
-        pre_parsing = list(command)
+    def parse(self, command_list: str):
+        """
+        starts parsing
+        """
+        pre_parsing = list(command_list)
         empty_stream = io.StringIO()
         try:
-            self.parseClear(pre_parsing, 0, empty_stream)
+            self.parse_clear(pre_parsing, 0, empty_stream)
         except SyntaxError:
             sys.stderr.write("invalid syntax\n")
 
 
-a = Terminal()
+A = Terminal()
 print()
 while True:
     try:
-        print(a.position(), end="")
-        command = input()
-        a.parse(command)
+        print(A.position(), end="")
+        COMMAND = input()
+        A.parse(COMMAND)
 
     except KeyboardInterrupt:
         print("\nI remember what you did to me\033[0m")
-
-        exit()
+        break
