@@ -10,6 +10,7 @@ class NonDirName(Exception):
     path is not path to directory
     """
 
+
 class InvalidSyntax(Exception):
     """
     Not correct syntax
@@ -23,7 +24,6 @@ class InvalidArgument(Exception):
 
 
 class NonFileName(Exception):
-
     """
     path is not path to file
     """
@@ -177,12 +177,13 @@ class Executer:
         file = open(filename, 'w')
         file.close()
 
-    def subprocess(self, directory: str, subcommand: list, stdin, stdout, stderr):
+    def subprocess(self, directory: str, subcommand: list,
+                   stdin, stdout, stderr):
         """
         runs subprocess
         """
         if isinstance(self, int):
             raise SyntaxError
         os.chdir(directory)
-        subprocess.run(subcommand, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
-
+        subprocess.run(subcommand, stdin=sys.stdin,
+                       stdout=sys.stdout, stderr=sys.stderr)

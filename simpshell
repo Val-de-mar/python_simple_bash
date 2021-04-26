@@ -36,10 +36,12 @@ class Terminal:
         """
         changes directory
         """
-        if len(subcommand_list) != 1 or not isinstance(subcommand_list[0], str):
+        if len(subcommand_list) != 1 or not isinstance(subcommand_list[0],
+                                                       str):
             self.err_stream.write("too few arguments\n")
             return
-        if len(subcommand_list) != 1 or not isinstance(subcommand_list[0], str):
+        if len(subcommand_list) != 1 or not isinstance(subcommand_list[0],
+                                                       str):
             self.err_stream.write("invalid syntax\n")
             return
 
@@ -72,7 +74,8 @@ class Terminal:
 
         if not subcommand_list:
             subcommand_list.append(self.cur_dir_name)
-        elif len(subcommand_list) != 1 or not isinstance(subcommand_list[0], str):
+        elif len(subcommand_list) != 1 or not isinstance(subcommand_list[0],
+                                                         str):
             self.err_stream.write("too few arguments\n")
             return
 
@@ -151,7 +154,8 @@ class Terminal:
         """
         if not subcommand_list:
             subcommand_list.append(self.cur_dir_name)
-        elif len(subcommand_list) != 1 or not isinstance(subcommand_list[0], str):
+        elif len(subcommand_list) != 1 or not isinstance(subcommand_list[0],
+                                                         str):
             self.err_stream.write("too few arguments\n")
             return
 
@@ -304,7 +308,6 @@ class Terminal:
         elif self.continue_run(command_run):
             self.subprocess(command_run, in_stream)
 
-
     def parse_clear(self, command_list_c: list, begin: int, in_stream):
         """
         simple parsing
@@ -350,7 +353,7 @@ class Terminal:
                     prev_sign[0] = True
                 elif char == '$':
                     prev_sign[1] = True
-                elif char == " ":
+                elif char == " " or char == "\t":
                     i += 1
                     ans.append("")
                 elif char == '"':
@@ -465,7 +468,8 @@ class Terminal:
             end += 1
         raise SyntaxError
 
-    def parse_brackets(self, command_list: list, begin: int, in_stream) -> int:
+    def parse_brackets(self, command_list: list,
+                       begin: int, in_stream) -> int:
         """
         parses expressions in brackets
         """
